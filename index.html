@@ -1,0 +1,492 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+... <!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英語追試とか嫌すぎ</title>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg: #F3F4F6;
+            --card-bg: #FFFFFF;
+            --text: #1F2937;
+            --success: #10B981;
+            --danger: #EF4444;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary);
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background-color: #E5E7EB;
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .tab-btn.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .panel {
+            display: none;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        /* フォーム系 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"], select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #D1D5DB;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        /* カード表示エリア */
+        .card-container {
+            perspective: 1000px;
+            height: 250px;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .flashcard {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            border-radius: 12px;
+            background-color: white;
+            border: 2px solid #E5E7EB;
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+            background-color: #EEF2FF;
+            border-color: #C7D2FE;
+        }
+
+        .card-label {
+            font-size: 12px;
+            color: #6B7280;
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .card-text {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-success { background-color: var(--success); }
+        .btn-danger { background-color: var(--danger); }
+
+        /* カードリスト表示 */
+        .card-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #E5E7EB;
+        }
+
+        .card-item-text {
+            font-size: 14px;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>英語追試とか嫌すぎ</h1>
+
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('study')">学習する</button>
+        <button class="tab-btn" onclick="switchTab('manage')">管理・登録</button>
+        <button class="tab-btn" onclick="switchTab('ai')">AI自動生成</button>
+    </div>
+
+    <!-- 学習パネル -->
+    <div id="study-panel" class="panel active">
+        <div class="form-group">
+            <label>出題モードの設定</label>
+            <select id="mode-select" onchange="resetStudy()">
+                <option value="normal">通常（問題 → 答え）</option>
+                <option value="reverse">逆再生（答え → 問題）</option>
+                <option value="random">完全ランダム（表裏を毎回ランダム指定）</option>
+            </select>
+        </div>
+
+        <div id="study-area">
+            <div style="text-align: right; margin-bottom: 5px; color: #6B7280;" id="progress-text">0 / 0</div>
+            <div class="card-container" onclick="flipCard()">
+                <div class="flashcard" id="flashcard">
+                    <div class="card-face card-front">
+                        <span class="card-label" id="front-label">問題</span>
+                        <div class="card-text" id="front-text">単語がありません</div>
+                    </div>
+                    <div class="card-face card-back">
+                        <span class="card-label" id="back-label">答え</span>
+                        <div class="card-text" id="back-text">単語を追加してください</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-btns">
+                <button class="btn btn-danger" onclick="nextCard(false)">もう一度</button>
+                <button class="btn btn-success" onclick="nextCard(true)">覚えた</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 管理・手動登録パネル -->
+    <div id="manage-panel" class="panel">
+        <h3>新しいカードの追加</h3>
+        <div class="form-group">
+            <label>問題（表）</label>
+            <input type="text" id="input-front" placeholder="例: Apple">
+        </div>
+        <div class="form-group">
+            <label>答え（裏）</label>
+            <input type="text" id="input-back" placeholder="例: りんご">
+        </div>
+        <button class="btn" onclick="addCard()">追加する</button>
+
+        <h3 style="margin-top: 30px;">登録済みカード一覧</h3>
+        <div id="card-list"></div>
+    </div>
+
+    <!-- AI生成パネル -->
+    <div id="ai-panel" class="panel">
+        <h3>Gemini APIで単語帳を自動作成</h3>
+        <div class="form-group">
+            <label>Gemini APIキー</label>
+            <input type="text" id="api-key" placeholder="AI StudioのAPIキーを入力">
+        </div>
+        <div class="form-group">
+            <label>作成したいテーマ</label>
+            <input type="text" id="ai-topic" placeholder="例: 中学英単語（果物）5問、日本の歴史（江戸時代）">
+        </div>
+        <button class="btn" onclick="generateWithAI()">AIで問題を生成</button>
+        <p id="ai-status" style="margin-top: 10px; font-size: 14px; color: #6B7280;"></p>
+    </div>
+</div>
+
+<script>
+    // データモデル
+    let cards = JSON.parse(localStorage.getItem('flashcards')) || [
+        { front: "fight", back: "けんか" },
+        { front: "challenge", back: "困難" },
+        { front: "against", back: "対する" },
+        { front: "stay", back: "いる" },
+        { front: "stay up", back: "起きている" },
+        { front: "visit", back: "訪れる" },
+        { front: "urban", back: "都市" },
+        { front: "capital", back: "中心部" },
+        { front: "effect", back: "効果" },
+        { front: "come into effect", back: "発効する" },
+        { front: "take effect", back: "効く" },
+        { front: "influence", back: "影響力" },
+        { front: "impact", back: "影響" },
+        { front: "side", back: "側" },
+        { front: "side by side", back: "並んで" },
+        { front: "above", back: "上に" },
+        { front: "below", back: "中に" },
+        { front: "atmosphere", back: "雰囲気" },
+        { front: "air", back: "空気" },
+        { front: "smoke", back: "煙" },
+        { front: "physical", back: "体" },
+        { front: "sleep", back: "休み" },
+        { front: "wake", back: "起きる" },
+        { front: "exercise", back: "運動" },
+        { front: "fear", back: "恐れる" },
+        { front: "worry", back: "心配する" },
+        { front: "be worried about", back: "…について心配する" },
+        { front: "suffer", back: "起こす" },
+        { front: "afraid", back: "怖がる" },
+        { front: "I'm afraid", back: "だと思う" },
+        { front: "degree", back: "度" },
+        { front: "grade", back: "等級" },
+        { front: "rather", back: "あまりに" },
+        { front: "would rather", back: "…したい" },
+        { front: "highly", back: "とても" },
+        { front: "increasingly", back: "ますます" },
+    ];
+
+    let currentDeck = [];
+    let currentIndex = 0;
+    let isFlipped = false;
+
+    // 初期化
+    window.onload = () => {
+        resetStudy();
+        renderList();
+    };
+
+    // タブ切り替え
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active'));
+
+        event.target.classList.add('active');
+        document.getElementById(`${tabName}-panel`).classList.add('active');
+
+        if(tabName === 'study') resetStudy();
+    }
+
+    // 学習セッションの初期化 (シャッフルと出題準備)
+    function resetStudy() {
+        if (cards.length === 0) {
+            document.getElementById('front-text').innerText = "カードがありません";
+            document.getElementById('back-text').innerText = "カードを登録してください";
+            document.getElementById('progress-text').innerText = "0 / 0";
+            return;
+        }
+
+        // 配列をシャッフル (フィッシャー–イェーツのシャッフル)
+        currentDeck = [...cards].sort(() => Math.random() - 0.5);
+        currentIndex = 0;
+        showCard();
+    }
+
+    // カードの表示処理 (出題モード対応)
+    function showCard() {
+        isFlipped = false;
+        document.getElementById('flashcard').classList.remove('flipped');
+
+        if (currentIndex >= currentDeck.length) {
+            alert("全てのカードの学習が完了しました！");
+            resetStudy();
+            return;
+        }
+
+        const item = currentDeck[currentIndex];
+        const mode = document.getElementById('mode-select').value;
+
+        let showFront = true;
+        if (mode === 'reverse') {
+            showFront = false;
+        } else if (mode === 'random') {
+            showFront = Math.random() < 0.5; // 50%の確率で入れ替え
+        }
+
+        const frontText = showFront ? item.front : item.back;
+        const backText = showFront ? item.back : item.front;
+
+        document.getElementById('front-text').innerText = frontText;
+        document.getElementById('back-text').innerText = backText;
+        document.getElementById('progress-text').innerText = `${currentIndex + 1} / ${currentDeck.length}`;
+    }
+
+    // カードをめくる
+    function flipCard() {
+        if (cards.length === 0) return;
+        isFlipped = !isFlipped;
+        document.getElementById('flashcard').classList.toggle('flipped');
+    }
+
+    // 次のカードへ
+    function nextCard(remembered) {
+        if (cards.length === 0) return;
+        currentIndex++;
+        showCard();
+    }
+
+    // カードの手動追加
+    function addCard() {
+        const front = document.getElementById('input-front').value.trim();
+        const back = document.getElementById('input-back').value.trim();
+
+        if (!front || !back) {
+            alert('両方の項目を入力してください');
+            return;
+        }
+
+        cards.push({ front, back });
+        saveAndRefresh();
+
+        document.getElementById('input-front').value = '';
+        document.getElementById('input-back').value = '';
+    }
+
+    // カードの削除
+    function deleteCard(index) {
+        cards.splice(index, 1);
+        saveAndRefresh();
+    }
+
+    function saveAndRefresh() {
+        localStorage.setItem('flashcards', JSON.stringify(cards));
+        renderList();
+    }
+
+    // 一覧の更新
+    function renderList() {
+        const listContainer = document.getElementById('card-list');
+        listContainer.innerHTML = '';
+
+        cards.forEach((card, index) => {
+            const div = document.createElement('div');
+            div.className = 'card-item';
+            div.innerHTML = `
+                <div class="card-item-text"><strong>${card.front}</strong> : ${card.back}</div>
+                <button class="delete-btn" onclick="deleteCard(${index})">削除</button>
+            `;
+            listContainer.appendChild(div);
+        });
+    }
+
+    // Gemini APIによる問題の自動生成
+    async function generateWithAI() {
+        const apiKey = document.getElementById('api-key').value.trim();
+        const topic = document.getElementById('ai-topic').value.trim();
+        const statusEl = document.getElementById('ai-status');
+
+        if (!apiKey || !topic) {
+            alert('APIキーとテーマを入力してください');
+            return;
+        }
+
+        statusEl.innerText = 'AIが問題を生成中...';
+
+        const prompt = `「${topic}」に関する単語・問題と答えのペアを5セット作成してください。
+必ず以下のJSON形式のみを出力してください。余計な解説は含めないでください。
+[
+  {"front": "問題や単語", "back": "答えや意味"},
+  {"front": "問題や単語", "back": "答えや意味"}
+]`;
+
+        try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }]
+                })
+            });
+
+            const data = await response.json();
+            const rawText = data.candidates[0].content.parts[0].text;
+
+            // JSON部分を取り出してパース
+            const jsonText = rawText.replace(/```json|```/g, '').trim();
+            const newCards = JSON.parse(jsonText);
+
+            cards = cards.concat(newCards);
+            saveAndRefresh();
+
+            statusEl.innerText = `${newCards.length}件のカードを追加しました！`;
+            document.getElementById('ai-topic').value = '';
+        } catch (error) {
+            console.error(error);
+            statusEl.innerText = '生成に失敗しました。APIキーまたはプロンプトを確認してください。';
+        }
+    }
+</script>
+
+</body>
+</html> ...
+</html>
